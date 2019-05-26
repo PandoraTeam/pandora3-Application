@@ -1,0 +1,17 @@
+{
+	"name": "pandora3/lib-application",
+	"type": "pandora3-lib",
+	"description": "Pandora 3: Lib Application",
+	"homepage": "https://github.com/PandoraTeam/pandora3-lib-Application",
+	"authors": [
+		{
+			"name": "Petr Gostin",
+			"email": "nescafe238@gmail.com",
+			"homepage": "http://u-238.ru",
+			"role": "Developer"
+		}
+	],
+	"require": {
+		"composer/installers": "~1.0"
+	}
+}
