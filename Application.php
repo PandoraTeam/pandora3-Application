@@ -8,7 +8,7 @@ use Pandora3\Core\Interfaces\SessionInterface;
 use Pandora3\Libs\Database\DatabaseConnection;
 use Pandora3\Libs\Session\Session;
 use Pandora3\Plugins\Authorisation\Authorisation;
-use Pandora3\Plugins\Authorisation\UserProviderInterface;
+use Pandora3\Plugins\Authorisation\Interfaces\UserProviderInterface;
 
 /**
  * Class Application
