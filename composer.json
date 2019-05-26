@@ -11,6 +11,9 @@
 			"role": "Developer"
 		}
 	],
+	"extra": {
+		"installer-name": "Application"
+	},
 	"require": {
 		"composer/installers": "~1.0"
 	}
