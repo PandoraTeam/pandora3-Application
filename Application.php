@@ -3,12 +3,19 @@ namespace Pandora3\Libs\Application;
 
 use Pandora3\Core\Application\BaseApplication;
 use Pandora3\Core\Container\Container;
+use Pandora3\Core\Http\Response;
 use Pandora3\Core\Interfaces\DatabaseConnectionInterface;
+use Pandora3\Core\Interfaces\RequestHandlerInterface;
+use Pandora3\Core\Interfaces\RequestInterface;
+use Pandora3\Core\Interfaces\ResponseInterface;
 use Pandora3\Core\Interfaces\SessionInterface;
+use Pandora3\Core\Router\Exceptions\RouteNotFoundException;
+use Pandora3\Core\Router\RequestHandler;
 use Pandora3\Libs\Database\DatabaseConnection;
 use Pandora3\Libs\Session\Session;
 use Pandora3\Plugins\Authorisation\Authorisation;
 use Pandora3\Plugins\Authorisation\Interfaces\UserProviderInterface;
+use Pandora3\Plugins\Authorisation\Middlewares\AuthorisedMiddleware;
 
 /**
  * Class Application
@@ -64,6 +71,38 @@ abstract class Application extends BaseApplication {
 		);
 	}
 
+	protected function page404(RequestInterface $request): ResponseInterface {
+		return new Response('404 page not found');
+	}
+	
+	protected function dispatch(array &$arguments): RequestHandlerInterface {
+		try {
+			return parent::dispatch($arguments);
+		} catch (RouteNotFoundException $ex) {
+			return new RequestHandler( function(RequestInterface $request) {
+				return $this->page404($request);
+			});
+		}
+	}
+	
+	/**
+	 * @param string $uri
+	 * @return RequestHandlerInterface
+	 */
+	protected function redirectUriHandler(string $uri): RequestHandlerInterface {
+		return new RequestHandler( function() use ($uri) {
+			return new Response('', ['location' => $uri]);
+		});
+	}
+	
+	/**
+	 * @return RequestHandlerInterface
+	 */
+	protected function getUnauthorisedHandler(): RequestHandlerInterface {
+		// return new RequestHandler( \Closure::fromCallable([$this, 'page404']) );
+		return $this->redirectUriHandler( $this->config->get('auth')['uriSignIn'] );
+	}
+	
 	/**
 	 * {@inheritdoc}
 	 */
@@ -86,6 +125,12 @@ abstract class Application extends BaseApplication {
 		$container->set(UserProviderInterface::class, function() {
 			return null;
 		});
+
+		$container->set(AuthorisedMiddleware::class, function() {
+			return new AuthorisedMiddleware($this->getUnauthorisedHandler(), $this->container->get(Authorisation::class));
+		});
+
+		$this->registerMiddleware('auth', AuthorisedMiddleware::class);
 
 		$this->setProperty('auth', Authorisation::class);
 	}
