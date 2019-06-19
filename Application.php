@@ -6,18 +6,21 @@ use Pandora3\Core\Application\BaseApplication;
 use Pandora3\Core\Application\Exceptions\UnregisteredMiddlewareException;
 use Pandora3\Core\Container\Container;
 use Pandora3\Core\Controller\Controller;
+use Pandora3\Core\Http\Request;
 use Pandora3\Core\Http\Response;
 use Pandora3\Core\Interfaces\DatabaseConnectionInterface;
 use Pandora3\Core\Interfaces\RequestDispatcherInterface;
 use Pandora3\Core\Interfaces\RequestHandlerInterface;
 use Pandora3\Core\Interfaces\RequestInterface;
 use Pandora3\Core\Interfaces\ResponseInterface;
+use Pandora3\Core\Interfaces\RouterInterface;
 use Pandora3\Core\Interfaces\SessionInterface;
 use Pandora3\Core\Middleware\Interfaces\MiddlewareInterface;
 use Pandora3\Core\Middleware\MiddlewareChain;
 use Pandora3\Core\Middleware\MiddlewareDispatcher;
 use Pandora3\Core\Router\Exceptions\RouteNotFoundException;
 use Pandora3\Core\Router\RequestHandler;
+use Pandora3\Core\Router\Router;
 use Pandora3\Libs\Database\DatabaseConnection;
 use Pandora3\Libs\Session\Session;
 use Pandora3\Plugins\Authorisation\Authorisation;
@@ -31,6 +34,8 @@ use Pandora3\Plugins\Authorisation\Middlewares\AuthorisedMiddleware;
  * @property-read string $baseUri
  * @property-read DatabaseConnectionInterface $database
  * @property-read Authorisation $auth
+ * @property-read RequestInterface $request
+ * @property-read RouterInterface $router
  */
 abstract class Application extends BaseApplication {
 
@@ -205,8 +210,25 @@ abstract class Application extends BaseApplication {
 	protected function dependencies(Container $container): void {
 		parent::dependencies($container);
 
-		$container->setShared(DatabaseConnectionInterface::class, DatabaseConnection::class);
-		$container->setShared(SessionInterface::class, Session::class);
+		$container->setDependencies([
+			RequestInterface::class => Request::class,
+			RouterInterface::class => Router::class,
+		]);
+		$container->set(Request::class, function() {
+			$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+			$uri = (strncmp($uri, '/', 1) === 0 ? '' : '/').$uri;
+			return new Request($uri);
+		});
+
+		$this->setProperties([
+			'request' => RequestInterface::class,
+			'router' => RouterInterface::class,
+		]);
+
+		$container->setDependenciesShared([
+			DatabaseConnectionInterface::class => DatabaseConnection::class,
+			SessionInterface::class => Session::class
+		]);
 
 		$this->setProperty('baseUri', function() { return $this->getBaseUri(); });
 
@@ -227,7 +249,6 @@ abstract class Application extends BaseApplication {
 		});
 
 		$this->registerMiddleware('auth', AuthorisedMiddleware::class);
-
 		$this->setProperty('auth', Authorisation::class);
 	}
 	
