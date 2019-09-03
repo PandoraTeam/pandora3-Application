@@ -59,7 +59,9 @@ abstract class Application extends BaseApplication {
 	 * @param string $className
 	 */
 	protected function registerMiddleware(string $name, string $className): void {
-		$this->container->set("middleware.$name", $className);
+		$this->container->set("middleware.$name", function(Container $c) use ($className) {
+			return $c->get($className);
+		});
 	}
 
 	/**
