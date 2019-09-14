@@ -12,6 +12,7 @@ use Pandora3\Core\Interfaces\RequestInterface;
 use Pandora3\Core\Interfaces\ResponseInterface;
 use Pandora3\Core\Interfaces\RouterInterface;
 use Pandora3\Core\Interfaces\SessionInterface;
+use Pandora3\Core\Middleware\Interfaces\MiddlewareInterface;
 use Pandora3\Core\MiddlewareRouter\MiddlewareRouter;
 use Pandora3\Core\Router\Exceptions\RouteNotFoundException;
 use Pandora3\Core\Router\RequestHandler;
@@ -73,6 +74,13 @@ abstract class Application extends BaseApplication {
 		// todo: warning - no routes defined
 		return include("{$this->path}/routes.php");
 	}
+	
+	/**
+	 * @return MiddlewareInterface[]
+	 */
+	public function getMiddlewares(): array {
+		return [];
+	}
 
 	/**
 	 * @return string
@@ -101,7 +109,7 @@ abstract class Application extends BaseApplication {
 	}
 
 	protected function page404(RequestInterface $request): ResponseInterface {
-		return new Response('404 page not found');
+		return new Response('404 page not found', 404);
 	}
 	
 	/**
@@ -135,6 +143,13 @@ abstract class Application extends BaseApplication {
 			$dispatcher = $this->container->get(RouterInterface::class);
 			$routes = $this->getRoutes();
 			$this->registerRoutes($dispatcher, $routes);
+			
+			if ($dispatcher instanceof MiddlewareRouter) {
+				$middlewares = $this->getMiddlewares();
+				if ($middlewares) {
+					$dispatcher = $dispatcher->wrapHandler($dispatcher, $middlewares);
+				}
+			}
 			$this->dispatcher = $dispatcher;
 		}
 		return $this->dispatcher;
@@ -161,7 +176,7 @@ abstract class Application extends BaseApplication {
 	 */
 	protected function redirectUriHandler(string $uri): RequestHandlerInterface {
 		return new RequestHandler( function() use ($uri) {
-			return new Response('', ['location' => $uri]);
+			return new Response('', 303, ['location' => $uri]);
 		});
 	}
 	
