@@ -16,6 +16,8 @@ use Pandora3\Core\Middleware\Interfaces\MiddlewareInterface;
 use Pandora3\Core\MiddlewareRouter\MiddlewareRouter;
 use Pandora3\Core\Router\Exceptions\RouteNotFoundException;
 use Pandora3\Core\Router\RequestHandler;
+use Pandora3\Libs\Cookie\Cookies;
+use Pandora3\Libs\Cookie\Middlewares\SaveCookiesMiddleware;
 use Pandora3\Libs\Database\DatabaseConnection;
 use Pandora3\Libs\Session\Session;
 use Pandora3\Plugins\Authorisation\Authorisation;
@@ -31,6 +33,7 @@ use Pandora3\Plugins\Authorisation\Middlewares\AuthorisedMiddleware;
  * @property-read Authorisation $auth
  * @property-read RequestInterface $request
  * @property-read RouterInterface $router
+ * @property-read Cookies $cookies
  */
 abstract class Application extends BaseApplication {
 
@@ -79,7 +82,7 @@ abstract class Application extends BaseApplication {
 	 * @return MiddlewareInterface[]
 	 */
 	public function getMiddlewares(): array {
-		return [];
+		return ['saveCookies'];
 	}
 
 	/**
@@ -203,12 +206,16 @@ abstract class Application extends BaseApplication {
 		});
 		$container->set(Request::class, function() {
 			$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
-			$uri = (strncmp($uri, '/', 1) === 0 ? '' : '/').$uri;
+			$uri = (($uri[0] ?? '') !== '/' ? '/' : '').$uri;
 			return new Request($uri);
+		});
+		$container->setShared(Cookies::class, function() {
+			return new Cookies();
 		});
 
 		$this->setProperties([
-			'request' => RequestInterface::class
+			'request' => RequestInterface::class,
+			'cookies' => Cookies::class
 		]);
 
 		$container->setDependenciesShared([
@@ -238,6 +245,7 @@ abstract class Application extends BaseApplication {
 		});
 
 		$this->registerMiddleware('auth', AuthorisedMiddleware::class);
+		$this->registerMiddleware('saveCookies', SaveCookiesMiddleware::class);
 	}
 	
 	protected function execute(): void {
