@@ -79,7 +79,7 @@ abstract class Application extends BaseApplication {
 	}
 	
 	/**
-	 * @return MiddlewareInterface[]
+	 * @return array
 	 */
 	public function getMiddlewares(): array {
 		return ['saveCookies'];
