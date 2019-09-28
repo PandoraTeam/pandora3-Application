@@ -12,7 +12,6 @@ use Pandora3\Core\Interfaces\RequestInterface;
 use Pandora3\Core\Interfaces\ResponseInterface;
 use Pandora3\Core\Interfaces\RouterInterface;
 use Pandora3\Core\Interfaces\SessionInterface;
-use Pandora3\Core\Middleware\Interfaces\MiddlewareInterface;
 use Pandora3\Core\MiddlewareRouter\MiddlewareRouter;
 use Pandora3\Core\Router\Exceptions\RouteNotFoundException;
 use Pandora3\Core\Router\RequestHandler;
@@ -206,6 +205,7 @@ abstract class Application extends BaseApplication {
 		});
 		$container->set(Request::class, function() {
 			$uri = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH);
+			$uri = preg_replace('#^'.preg_quote($this->baseUri).'#', '', $uri);
 			$uri = (($uri[0] ?? '') !== '/' ? '/' : '').$uri;
 			return new Request($uri);
 		});
@@ -232,7 +232,7 @@ abstract class Application extends BaseApplication {
 			$this->setProperty('database', DatabaseConnectionInterface::class);
 		}
 
-		// todo: default UserProviderInterface
+		// todo: default UserProvider
 		$container->set(UserProviderInterface::class, function() {
 			return null;
 		});
